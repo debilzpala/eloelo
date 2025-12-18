@@ -1,13 +1,12 @@
 {
-  "name": "cheetos-api",
+  "name": "cheatoscraft-status-webhook",
   "version": "1.0.0",
+  "main": "index.js",
   "type": "module",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "cors": "^2.8.5",
-    "minecraft-server-util": "^5.2.1"
+    "node-fetch": "^3.3.2"
   }
 }
