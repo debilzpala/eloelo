@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import { status } from "minecraft-server-util";
+import fetch from "node-fetch"; // do wysyłania webhooka
 
 const app = express();
 app.use(cors());
@@ -8,17 +9,36 @@ app.use(cors());
 const SERVER_HOST = "B6steak.aternos.me";
 const SERVER_PORT = 13735;
 
+const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1450869365795979436/IVHLCVwVLPHmZ2wTEYC4zC5bJIDHA35LZG1lI8QzJ31H6bzUVzDDdP8AI4tBxcB-DNpP";
+
 let cache = null;
 let lastFetch = 0;
-const CACHE_DURATION = 10000;
+const CACHE_DURATION = 10000; // 10 sekund
+
+// Funkcja wysyłająca powiadomienie do Discorda
+async function sendDiscordWebhook(message) {
+  if (!DISCORD_WEBHOOK) return;
+  try {
+    await fetch(DISCORD_WEBHOOK, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: message })
+    });
+  } catch (err) {
+    console.error("Błąd przy wysyłaniu webhooka:", err);
+  }
+}
 
 app.get("/api/status", async (req, res) => {
   const now = Date.now();
+
   if (cache && now - lastFetch < CACHE_DURATION) return res.json(cache);
+
+  let newCache;
 
   try {
     const result = await status(SERVER_HOST, SERVER_PORT, { timeout: 5000 });
-    cache = {
+    newCache = {
       online: true,
       onlinePlayers: result.players.online,
       maxPlayers: result.players.max,
@@ -26,7 +46,7 @@ app.get("/api/status", async (req, res) => {
       icon: result.favicon || null
     };
   } catch {
-    cache = {
+    newCache = {
       online: false,
       onlinePlayers: 0,
       maxPlayers: 0,
@@ -34,7 +54,16 @@ app.get("/api/status", async (req, res) => {
       icon: null
     };
   }
+
+  // Sprawdzenie, czy status się zmienił, żeby wysłać webhook
+  if (!cache || cache.online !== newCache.online) {
+    const statusText = newCache.online ? "ONLINE" : "OFFLINE";
+    await sendDiscordWebhook(`Serwer Minecraft **${SERVER_HOST}** jest teraz **${statusText}**!`);
+  }
+
+  cache = newCache;
   lastFetch = now;
+
   res.json(cache);
 });
 
