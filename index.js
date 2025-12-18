@@ -8,7 +8,7 @@ app.use(cors());
 const SERVER_HOST = "B6steak.aternos.me";
 const SERVER_PORT = 13735;
 
-const DISCORD_WEBHOOK = "TWÓJ_WEBHOOK_URL_HERE";
+const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1450869365795979436/IVHLCVwVLPHmZ2wTEYC4zC5bJIDHA35LZG1lI8QzJ31H6bzUVzDDdP8AI4tBxcB-DNpP";
 
 // Cache i stabilizacja statusu
 let cache = null;
