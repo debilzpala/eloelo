@@ -1,52 +1,54 @@
-// index.js
-import express from "express";
-import cors from "cors";
-import { status } from "minecraft-server-util";
+import fetch from "node-fetch";
 
-const app = express();
-app.use(cors());
+const API_URL = "https://eloelo-production.up.railway.app/api/status?host=B6steak.aternos.me&port=13735";
+const WEBHOOK_URL = "https://discord.com/api/webhooks/1450869365795979436/IVHLCVwVLPHmZ2wTEYC4zC5bJIDHA35LZG1lI8QzJ31H6bzUVzDDdP8AI4tBxcB-DNpP"; // <- WAZNE
 
-// Konfiguracja serwera Minecraft
-const SERVER_HOST = "B6steak.aternos.me";
-const SERVER_PORT = 13735;
+let lastStatus = null;
 
-// Cache
-let cache = null;
-let lastFetch = 0;
-const CACHE_DURATION = 10000; // 10 sekund
-
-app.get("/api/status", async (req, res) => {
-  const now = Date.now();
-
-  if (cache && now - lastFetch < CACHE_DURATION) {
-    return res.json(cache);
-  }
-
+async function checkStatus() {
   try {
-    const result = await status(SERVER_HOST, SERVER_PORT, { timeout: 5000 });
+    const res = await fetch(API_URL);
+    const data = await res.json();
 
-    cache = {
-      online: true,
-      onlinePlayers: result.players.online,
-      maxPlayers: result.players.max,
-      motd: result.motd.clean || result.motd.raw || "Brak MOTD",
-      icon: result.favicon || null,
-    };
-    lastFetch = now;
+    let online = data.online === true;
+    let motd = (data.motd || "").toLowerCase();
 
-    res.json(cache);
-  } catch (e) {
-    cache = {
-      online: false,
-      onlinePlayers: 0,
-      maxPlayers: 0,
-      motd: "OFFLINE",
-      icon: null,
-    };
-    lastFetch = now;
-    res.json(cache);
+    // JESLI MOTD MA "offline" -> OFFLINE
+    if (motd.includes("offline")) {
+      online = false;
+    }
+
+    const currentStatus = online ? "ONLINE" : "OFFLINE";
+
+    // wyslij webhook tylko przy zmianie
+    if (lastStatus !== null && lastStatus !== currentStatus) {
+      await fetch(WEBHOOK_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: "CheetosCraft Status",
+          embeds: [
+            {
+              title: "Status serwera Minecraft",
+              description: `Serwer **CheetosCraft** jest teraz **${currentStatus}**`,
+              color: online ? 0x00ff00 : 0xff0000,
+              footer: { text: "Automatyczny system statusu" },
+              timestamp: new Date()
+            }
+          ]
+        })
+      });
+
+      console.log("Webhook wyslany:", currentStatus);
+    }
+
+    lastStatus = currentStatus;
+  } catch (err) {
+    console.error("Blad sprawdzania statusu:", err);
   }
-});
+}
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`API działa na porcie ${PORT}`));
+// START
+console.log("CheetosCraft status webhook uruchomiony");
+checkStatus();
+setInterval(checkStatus, 5000); // co 5 sekund
