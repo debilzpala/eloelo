@@ -1,12 +1,11 @@
 {
-  "name": "cheatoscraft-status-webhook",
+  "name": "cheatoscraft-api",
   "version": "1.0.0",
-  "main": "index.js",
-  "type": "module",
   "scripts": {
-    "start": "node index.js"
+    "start": "node server.js"
   },
   "dependencies": {
-    "node-fetch": "^3.3.2"
+    "express": "^4.18.2",
+    "node-fetch": "^2.6.7"
   }
 }
