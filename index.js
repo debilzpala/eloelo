@@ -1,7 +1,6 @@
 import express from "express";
 import cors from "cors";
 import { status } from "minecraft-server-util";
-import fetch from "node-fetch"; // do wysyłania webhooka
 
 const app = express();
 app.use(cors());
