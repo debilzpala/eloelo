@@ -5,10 +5,10 @@ import { status } from "minecraft-server-util";
 const app = express();
 app.use(cors());
 
-const SERVER_HOST = "NeoNcraf_mc.aternos.me.aternos.me";
+const SERVER_HOST = "NeoNcraf_mc.aternos.me";
 const SERVER_PORT = 34490;
 
-const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1450869365795979436/IVHLCVwVLPHmZ2wTEYC4zC5bJIDHA35LZG1lI8QzJ31H6bzUVzDDdP8AI4tBxcB-DNpP";
+const DISCORD_WEBHOOK = "";
 
 // Cache i stabilizacja statusu
 let cache = null;
