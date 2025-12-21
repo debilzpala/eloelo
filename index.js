@@ -5,8 +5,8 @@ import { status } from "minecraft-server-util";
 const app = express();
 app.use(cors());
 
-const SERVER_HOST = "B6steak.aternos.me";
-const SERVER_PORT = 13735;
+const SERVER_HOST = "NeoNcraf_mc.aternos.me.aternos.me";
+const SERVER_PORT = 34490;
 
 const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1450869365795979436/IVHLCVwVLPHmZ2wTEYC4zC5bJIDHA35LZG1lI8QzJ31H6bzUVzDDdP8AI4tBxcB-DNpP";
 
@@ -25,7 +25,7 @@ async function sendDiscordEmbed(status, data) {
   if (!DISCORD_WEBHOOK) return;
 
   const embed = {
-    title: `Serwer Minecraft ${SERVER_HOST} jest teraz ${status ? "ONLINE ✅" : "OFFLINE ❌"}`,
+    title: `Serwer NeoNCraf jest teraz ${status ? "ONLINE ✅" : "OFFLINE ❌"}`,
     color: status ? 3066993 : 15158332, // zielony/czerwony
     fields: [
       { name: "MOTD", value: data.motd || "Brak MOTD", inline: false },
