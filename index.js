@@ -1,40 +1,78 @@
 import express from "express";
 import cors from "cors";
 import { status } from "minecraft-server-util";
+import "dotenv/config";
 
 const app = express();
-app.use(cors());
+
+/* ================== KONFIGURACJA ================== */
 
 const SERVER_HOST = "B6steak.aternos.me";
 const SERVER_PORT = 13307;
 
-const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1450869365795979436/IVHLCVwVLPHmZ2wTEYC4zC5bJIDHA35LZG1lI8QzJ31H6bzUVzDDdP8AI4tBxcB-DNpP";
+const PORT = process.env.PORT || 3000;
+const DISCORD_WEBHOOK = process.env.DISCORD_WEBHOOK || null;
 
-// Cache i stabilizacja statusu
+// dozwolone domeny (zmień na swoją)
+const ALLOWED_ORIGINS = [
+  "http://localhost:3000",
+  "https://twojastrona.pl"
+];
+
+/* ================== CORS ================== */
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("CORS blocked"));
+      }
+    }
+  })
+);
+
+/* ================== CACHE ================== */
+
 let cache = null;
 let lastFetch = 0;
-const CACHE_DURATION = 10000; // 10 sekund
+const CACHE_DURATION = 10_000;
 
-let lastOnlineStatus = null;   // ostatni faktyczny status wysłany do webhooka
-let lastObservedStatus = null; // ostatni status odczytany z serwera
-let consecutiveCount = 0;      
-const REQUIRED_CONSECUTIVE = 2; // wymagana liczba kolejnych odczytów
+/* ================== STABILIZACJA ================== */
 
-// Funkcja wysyłająca embed do Discorda
-async function sendDiscordEmbed(status, data) {
+let lastOnlineStatus = null;
+let lastObservedStatus = null;
+let consecutiveCount = 0;
+const REQUIRED_CONSECUTIVE = 2;
+
+/* ================== DISCORD ================== */
+
+async function sendDiscordEmbed(isOnline, data) {
   if (!DISCORD_WEBHOOK) return;
 
   const embed = {
-    title: `Serwer Cheatoscraft jest teraz ${status ? "ONLINE ✅" : "OFFLINE ❌"}`,
-    color: status ? 3066993 : 15158332, // zielony/czerwony
+    title: `Serwer Cheatoscraft jest teraz ${
+      isOnline ? "ONLINE ✅" : "OFFLINE ❌"
+    }`,
+    color: isOnline ? 3066993 : 15158332,
     fields: [
-      { name: "MOTD", value: data.motd || "Brak MOTD", inline: false },
-      { name: "Gracze", value: `${data.onlinePlayers}/${data.maxPlayers}`, inline: true }
+      {
+        name: "MOTD",
+        value: data.motd || "Brak MOTD"
+      },
+      {
+        name: "Gracze",
+        value: `${data.onlinePlayers}/${data.maxPlayers}`,
+        inline: true
+      }
     ],
-    timestamp: new Date()
+    timestamp: new Date().toISOString()
   };
 
-  if (data.icon) embed.thumbnail = { url: data.icon };
+  if (data.icon) {
+    embed.thumbnail = { url: data.icon };
+  }
 
   try {
     await fetch(DISCORD_WEBHOOK, {
@@ -43,25 +81,41 @@ async function sendDiscordEmbed(status, data) {
       body: JSON.stringify({ embeds: [embed] })
     });
   } catch (err) {
-    console.error("Błąd przy wysyłaniu webhooka:", err);
+    console.error("Webhook error:", err.message);
   }
 }
 
+/* ================== API ================== */
+
 app.get("/api/status", async (req, res) => {
   const now = Date.now();
-  if (cache && now - lastFetch < CACHE_DURATION) return res.json(cache);
+
+  if (cache && now - lastFetch < CACHE_DURATION) {
+    return res.json(cache);
+  }
 
   let newCache;
+
   try {
-    const result = await status(SERVER_HOST, SERVER_PORT, { timeout: 5000 });
+    const result = await status(SERVER_HOST, SERVER_PORT, {
+      timeout: 5000
+    });
+
+    const motd =
+      Array.isArray(result.motd.clean)
+        ? result.motd.clean.join("\n")
+        : result.motd.clean ||
+          result.motd.raw ||
+          "Brak MOTD";
+
     newCache = {
       online: true,
       onlinePlayers: result.players.online,
       maxPlayers: result.players.max,
-      motd: result.motd.clean || result.motd.raw || "Brak MOTD",
+      motd,
       icon: result.favicon || null
     };
-  } catch {
+  } catch (err) {
     newCache = {
       online: false,
       onlinePlayers: 0,
@@ -71,7 +125,8 @@ app.get("/api/status", async (req, res) => {
     };
   }
 
-  // Stabilizacja statusu
+  /* ===== STABILIZACJA ===== */
+
   if (lastObservedStatus === newCache.online) {
     consecutiveCount++;
   } else {
@@ -79,15 +134,22 @@ app.get("/api/status", async (req, res) => {
     consecutiveCount = 1;
   }
 
-  if (consecutiveCount >= REQUIRED_CONSECUTIVE && lastOnlineStatus !== newCache.online) {
+  if (
+    consecutiveCount >= REQUIRED_CONSECUTIVE &&
+    lastOnlineStatus !== newCache.online
+  ) {
     lastOnlineStatus = newCache.online;
     await sendDiscordEmbed(newCache.online, newCache);
   }
 
   cache = newCache;
   lastFetch = now;
+
   res.json(cache);
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`API działa na porcie ${PORT}`));
+/* ================== START ================== */
+
+app.listen(PORT, () => {
+  console.log(`✅ Minecraft API działa na porcie ${PORT}`);
+});
