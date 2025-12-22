@@ -15,7 +15,7 @@ const DISCORD_WEBHOOK = process.env.DISCORD_WEBHOOK || null;
 // dozwolone domeny (zmień na swoją)
 const ALLOWED_ORIGINS = [
   "http://localhost:3000",
-  "https://twojastrona.pl"
+  "https://cheatoscraft.work.gd"
 ];
 
 /* ================== CORS ================== */
