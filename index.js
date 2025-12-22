@@ -4,43 +4,28 @@ import { status } from "minecraft-server-util";
 
 const app = express();
 
-/* ================== KONFIGURACJA ================== */
-
+// ================== KONFIGURACJA ==================
 const SERVER_HOST = "B6steak.aternos.me";
 const SERVER_PORT = 13735;
 
 const PORT = process.env.PORT || 3000;
 const DISCORD_WEBHOOK = process.env.DISCORD_WEBHOOK || null;
 
-/* ================== CORS ================== */
+// ================== CORS ==================
+app.use(cors()); // pełny CORS, każdy może używać API
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (!origin || ALLOWED_ORIGINS.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("CORS blocked"));
-      }
-    }
-  })
-);
-
-/* ================== CACHE ================== */
-
+// ================== CACHE ==================
 let cache = null;
 let lastFetch = 0;
-const CACHE_DURATION = 10_000;
+const CACHE_DURATION = 10_000; // 10 sekund
 
-/* ================== STABILIZACJA ================== */
-
+// ================== STABILIZACJA ==================
 let lastOnlineStatus = null;
 let lastObservedStatus = null;
 let consecutiveCount = 0;
 const REQUIRED_CONSECUTIVE = 2;
 
-/* ================== DISCORD ================== */
-
+// ================== DISCORD ==================
 async function sendDiscordEmbed(isOnline, data) {
   if (!DISCORD_WEBHOOK) return;
 
@@ -50,22 +35,13 @@ async function sendDiscordEmbed(isOnline, data) {
     }`,
     color: isOnline ? 3066993 : 15158332,
     fields: [
-      {
-        name: "MOTD",
-        value: data.motd || "Brak MOTD"
-      },
-      {
-        name: "Gracze",
-        value: `${data.onlinePlayers}/${data.maxPlayers}`,
-        inline: true
-      }
+      { name: "MOTD", value: data.motd || "Brak MOTD" },
+      { name: "Gracze", value: `${data.onlinePlayers}/${data.maxPlayers}`, inline: true }
     ],
     timestamp: new Date().toISOString()
   };
 
-  if (data.icon) {
-    embed.thumbnail = { url: data.icon };
-  }
+  if (data.icon) embed.thumbnail = { url: data.icon };
 
   try {
     await fetch(DISCORD_WEBHOOK, {
@@ -78,28 +54,21 @@ async function sendDiscordEmbed(isOnline, data) {
   }
 }
 
-/* ================== API ================== */
-
+// ================== API ==================
 app.get("/api/status", async (req, res) => {
   const now = Date.now();
-
-  if (cache && now - lastFetch < CACHE_DURATION) {
-    return res.json(cache);
-  }
+  if (cache && now - lastFetch < CACHE_DURATION) return res.json(cache);
 
   let newCache;
 
   try {
-    const result = await status(SERVER_HOST, SERVER_PORT, {
-      timeout: 5000
-    });
+    // zwiększony timeout do 15s, żeby serwery Aternos się zdążyły odpalić
+    const result = await status(SERVER_HOST, SERVER_PORT, { timeout: 15000 });
 
     const motd =
       Array.isArray(result.motd.clean)
         ? result.motd.clean.join("\n")
-        : result.motd.clean ||
-          result.motd.raw ||
-          "Brak MOTD";
+        : result.motd.clean || result.motd.raw || "Brak MOTD";
 
     newCache = {
       online: true,
@@ -109,17 +78,21 @@ app.get("/api/status", async (req, res) => {
       icon: result.favicon || null
     };
   } catch (err) {
-    newCache = {
-      online: false,
-      onlinePlayers: 0,
-      maxPlayers: 0,
-      motd: "OFFLINE",
-      icon: null
-    };
+    // jeśli serwer nie odpowiada, zostaw poprzedni cache jeśli istnieje
+    if (cache) {
+      newCache = { ...cache, online: false }; // offline tymczasowo
+    } else {
+      newCache = {
+        online: false,
+        onlinePlayers: 0,
+        maxPlayers: 0,
+        motd: "OFFLINE",
+        icon: null
+      };
+    }
   }
 
-  /* ===== STABILIZACJA ===== */
-
+  // ===== STABILIZACJA =====
   if (lastObservedStatus === newCache.online) {
     consecutiveCount++;
   } else {
@@ -127,10 +100,7 @@ app.get("/api/status", async (req, res) => {
     consecutiveCount = 1;
   }
 
-  if (
-    consecutiveCount >= REQUIRED_CONSECUTIVE &&
-    lastOnlineStatus !== newCache.online
-  ) {
+  if (consecutiveCount >= REQUIRED_CONSECUTIVE && lastOnlineStatus !== newCache.online) {
     lastOnlineStatus = newCache.online;
     await sendDiscordEmbed(newCache.online, newCache);
   }
@@ -141,8 +111,8 @@ app.get("/api/status", async (req, res) => {
   res.json(cache);
 });
 
-/* ================== START ================== */
+// ================== HEALTHCHECK ==================
+app.get("/", (req, res) => res.send("OK"));
 
-app.listen(PORT, () => {
-  console.log(`✅ Minecraft API działa na porcie ${PORT}`);
-});
+// ================== START ==================
+app.listen(PORT, () => console.log(`✅ Minecraft API działa na porcie ${PORT}`));
