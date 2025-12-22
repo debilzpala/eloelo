@@ -1,7 +1,6 @@
 import express from "express";
 import cors from "cors";
 import { status } from "minecraft-server-util";
-import "dotenv/config";
 
 const app = express();
 
