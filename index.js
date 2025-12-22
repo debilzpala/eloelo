@@ -7,7 +7,7 @@ const app = express();
 /* ================== KONFIGURACJA ================== */
 
 const SERVER_HOST = "B6steak.aternos.me";
-const SERVER_PORT = 13307;
+const SERVER_PORT = 13735;
 
 const PORT = process.env.PORT || 3000;
 const DISCORD_WEBHOOK = process.env.DISCORD_WEBHOOK || null;
