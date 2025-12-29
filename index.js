@@ -5,8 +5,8 @@ import { status } from "minecraft-server-util";
 const app = express();
 
 // ================== KONFIGURACJA ==================
-const SERVER_HOST = "B6steak.aternos.me";
-const SERVER_PORT = 13735;
+const SERVER_HOST = "cheatos.qzz.io";
+const SERVER_PORT = 26554;
 
 const PORT = process.env.PORT || 3000;
 const DISCORD_WEBHOOK = process.env.DISCORD_WEBHOOK || null;
