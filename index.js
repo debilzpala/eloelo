@@ -5,8 +5,8 @@ import { status } from "minecraft-server-util";
 const app = express();
 
 // ================== KONFIGURACJA ==================
-const SERVER_HOST = "amethyst-mc.aternos.me";
-const SERVER_PORT = 61773;
+const SERVER_HOST = "endmc.mcsh.io";
+const SERVER_PORT = 25565;
 
 const PORT = process.env.PORT || 3000;
 const DISCORD_WEBHOOK = process.env.DISCORD_WEBHOOK || null;
