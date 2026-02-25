@@ -5,8 +5,8 @@ import { status } from "minecraft-server-util";
 const app = express();
 
 // ================== KONFIGURACJA ==================
-const SERVER_HOST = "pizzamc.work.gd";
-const SERVER_PORT = 4009;
+const SERVER_HOST = "gb-lon01.altare.sh";
+const SERVER_PORT = 25313;
 
 const PORT = process.env.PORT || 3000;
 const DISCORD_WEBHOOK = process.env.DISCORD_WEBHOOK || null;
